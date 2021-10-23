@@ -5,6 +5,15 @@ import json
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 
+
+ALLOWED_VOTERS = [
+    {
+        'name': 'aidan',
+        'ssn': '123456789',
+        'dob': '11/09/2002'
+    }
+]
+
 def update_hash(*args):
     hash_text = ''
     for arg in args:
@@ -12,16 +21,16 @@ def update_hash(*args):
     hash = sha256(hash_text.encode('utf-8'))
     return hash.hexdigest()
 
-voter = {'name': 'genesis', 'ssn': '000000000', 'dob': '1400'}
+genesis_voter = {'name': 'genesis', 'ssn': '000000000', 'dob': '0'}
 
 class VoteBlock:
-    def __init__(self, number = 0, previous_hash = '0' * 64, vote=None, voter=voter, nonce = 0):
+    def __init__(self, number = 0, previous_hash = '0' * 64, vote=None, voter=genesis_voter, nonce = 0):
         self.vote = vote
         self.number = number
         self.previous_hash = previous_hash
         self.nonce = nonce
         self.timestamp = str(datetime.datetime.now())
-        self.voter = sha256((voter.get('name') + voter.get('ssn') + voter.get('dob')).encode('utf-8'))
+        self.voter = sha256((voter.get('name') + voter.get('ssn') + voter.get('dob')).encode('utf-8')).hexdigest()
 
     def hash(self):
         return update_hash(
@@ -36,7 +45,7 @@ class VoteBlock:
         return self.__dict__
 
     def __str__(self):
-        return f'VoteBlock#: {self.number}\nHash: {self.hash()}\nPrevious Hash: {self.previous_hash}\nVote: {self.vote}\nNonce: {self.nonce}'
+        return f'VoteBlock: {self.number}\nHash: {self.hash()}\nPrevious Hash: {self.previous_hash}\nVote: {self.vote}\nNonce: {self.nonce}'
 
 class Blockchain:
 
@@ -74,22 +83,14 @@ blockchain = Blockchain()
 genesis = VoteBlock()
 blockchain.add(genesis)
 
-# votes = ['sanders', 'trump', 'biden']
-
-# number = 0
-# for vote in votes:
-#     number += 1
-#     blockchain.mine(VoteBlock(number = number, vote = vote))
-
 @api_view(['GET'])
 def get_blockchain(request):
-    for block in blockchain.chain:
-        print(block, end = '\n\n')
-    blockchain_json = json.dumps(blockchain.chain, default=lambda o: o.encode())
+    blockchain_view = json.dumps(blockchain.chain, default=lambda vote_block: vote_block.encode())
+
     response = {
-        'blockchain': blockchain_json,
+        'blockchain': blockchain_view,
         'length': len(blockchain.chain),
-        'valid': blockchain.is_valid()
+        'blockchain_is_valid': blockchain.is_valid()
     }
     return Response(response)
 
@@ -97,17 +98,27 @@ def get_blockchain(request):
 
 @api_view(['POST'])
 def add_vote(request):
-    blockchain.mine(VoteBlock(number = blockchain.chain[-1].number + 1, vote = request.data.get('vote'), voter=request.data.get('voter')))
-    vote_hash = blockchain.chain[-1].hash()
-    # blockchain.chain[-1].vote = 'trump'
-    for block in blockchain.chain:
-        print(block, end = '\n\n')
-    return Response({'message': 'Your vote had been recorded', 'vote_hash': vote_hash, 'valid': blockchain.is_valid()})
+    vote = request.data.get('vote')
+    voter = request.data.get('voter')
+
+    if voter in ALLOWED_VOTERS:
+
+        vote_block = VoteBlock(number = blockchain.chain[-1].number + 1, vote = vote, voter=voter)
+        
+        blockchain.mine(vote_block)
+        vote_hash = blockchain.chain[-1].hash()
+
+        return Response({'message': f'Your vote had been cast successfully. You voted for {vote}. Thank you for participating in democracy.', 'vote_hash': vote_hash, 'blockchain_is_valid': blockchain.is_valid()})
+    
+    else:
+        return Response({'message': 'Your voting credentials have not been approved'})
 
 
 @api_view(['GET'])
 def get_vote(request):
+    vote_hash = request.data.get('vote_hash')
+
     for block in blockchain.chain:
-        if block.hash() == request.data.get('vote_hash'):
-            return Response({'message': f'You voted for {block.vote}', 'valid': blockchain.is_valid()})
-    return Response({'message': 'Could not find your vote in the blockchain', 'valid': blockchain.is_valid()})
+        if block.hash() == vote_hash:
+            return Response({'message': f'Your vote is currently cast for {block.vote}.', 'blockchain_is_valid': blockchain.is_valid()})
+    return Response({'message': 'Your vote cannot be found on the blockchain', 'blockchain_is_valid': blockchain.is_valid()})
