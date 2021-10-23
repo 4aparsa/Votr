@@ -5,6 +5,8 @@ import json
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 
+
+#takes in voter data and generates a hash
 def update_hash(*args):
     hash_text = ''
     for arg in args:
@@ -31,7 +33,7 @@ class VoteBlock:
             self.nonce,
             self.voter
         )
-    
+
     def encode(self):
         return self.__dict__
 
@@ -47,7 +49,7 @@ class Blockchain:
 
     def add(self, block):
         self.chain.append(block)
-    
+
     def mine(self, block):
         block.previous_hash = self.chain[-1].hash()
 
@@ -66,7 +68,7 @@ class Blockchain:
             if previous_block != previous_hash or previous_block[:self.difficulty] != '0' * self.difficulty:
                 return False
         return True
-            
+
 
 
 blockchain = Blockchain()
