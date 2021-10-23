@@ -122,3 +122,16 @@ def get_vote(request):
         if block.hash() == vote_hash:
             return Response({'message': f'Your vote is currently cast for {block.vote}.', 'blockchain_is_valid': blockchain.is_valid()})
     return Response({'message': 'Your vote cannot be found on the blockchain', 'blockchain_is_valid': blockchain.is_valid()})
+
+
+@api_view(['GET'])
+def count_votes(request):
+    vote_counts = {
+
+    }
+    for i in range(1, len(blockchain.chain)):
+        if blockchain.chain[i].vote in vote_counts:
+            vote_counts[blockchain.chain[i].vote] += 1
+        else:
+            vote_counts[blockchain.chain[i].vote] = 1
+    return Response(vote_counts)
