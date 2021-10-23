@@ -1,2 +1,1 @@
 # Votr
-Blockchain voting.
