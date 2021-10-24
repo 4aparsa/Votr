@@ -31,6 +31,7 @@ class VoteBlock:
         self.number = number
         self.previous_hash = previous_hash
         self.voter_hash = voter_hash
+        self.hash_code = self.hash()
 
     def hash(self):
         return update_hash(
@@ -58,7 +59,7 @@ class Blockchain:
         block.previous_hash = self.chain[-1].hash()
         if block.voter_hash in ALLOWED_VOTER_HASHES:
             self.add(block)
-            return { 'message': f'Your vote had been cast successfully. You voted for {block.vote}. Thank you for participating in democracy.', 'block_hash': self.chain[-1].hash(), 'block_number': self.chain[-1].number, 'status': 'success' }
+            return { 'message': f'Your vote had been cast successfully. You voted for {block.vote}. Thank you for participating in democracy. Your block number is {self.chain[-1].number}', 'block_hash': self.chain[-1].hash(), 'block_number': self.chain[-1].number, 'status': 'success' }
         return {'message': 'Sorry, you are not currently registered to vote.', 'status': 'error'}
             
 
@@ -89,6 +90,12 @@ def get_blockchain(request):
     }
     return Response(response)
 
+@api_view(['GET'])
+def change_blockchain(request):
+    blockchain.chain[-2].vote = "Sneeky tampering!!! Alert!!!"
+    return Response({'message': 'successful tampering'})
+
+
 @api_view(['POST'])
 def add_vote(request):
     print(request.data)
@@ -108,9 +115,9 @@ def add_vote(request):
         
     return Response(response)
 
-@api_view(['GET'])
+@api_view(['POST'])
 def get_vote(request):
-    block_number = int(request.data.get('block_number'))
+    block_number = int(request.data.get('blockNumber'))
 
     try:
         vote = blockchain.chain[block_number].vote
