@@ -1,18 +1,22 @@
 from hashlib import sha256
-import datetime
 import json
 
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 
 
-ALLOWED_VOTERS = [
-    {
-        'name': 'aidan',
-        'ssn': '123456789',
-        'dob': '11/09/2002'
-    }
+ALLOWED_VOTER_HASHES = [
+    'c307f9a91838be2c44ac95c16f90d53219aa5da487d58b2a36c441cec9cbb548',
+    '26d0841e99187f02dde5cbf9da8709ae43828e2914ce57887eccb84d7a30e84e',
+    '2cd096cab6d452330d003f5755b50a8325949337c5bda815febfb3ae65a174ef',
+    '3c7245aa48d67a9f0c0929f9622a5643cbf1bc568d25182d0103d729e4430d5f'
 ]
+
+BLACKLISTED_VOTER_HASHES = [
+
+]
+
+genesis_voter_hash = 'genesis_voter_hash'
 
 def update_hash(*args):
     hash_text = ''
@@ -21,35 +25,28 @@ def update_hash(*args):
     hash = sha256(hash_text.encode('utf-8'))
     return hash.hexdigest()
 
-genesis_voter = {'name': 'genesis', 'ssn': '000000000', 'dob': '0'}
-
 class VoteBlock:
-    def __init__(self, number = 0, previous_hash = '0' * 64, vote=None, voter=genesis_voter, nonce = 0):
+    def __init__(self, number = 0, previous_hash = '0' * 64, vote=None, voter_hash=genesis_voter_hash):
         self.vote = vote
         self.number = number
         self.previous_hash = previous_hash
-        self.nonce = nonce
-        self.timestamp = str(datetime.datetime.now())
-        self.voter = sha256((voter.get('name') + voter.get('ssn') + voter.get('dob')).encode('utf-8')).hexdigest()
+        self.voter_hash = voter_hash
 
     def hash(self):
         return update_hash(
             self.number,
             self.previous_hash,
             self.vote,
-            self.nonce,
-            self.voter
+            self.voter_hash
         )
-    
+
     def encode(self):
         return self.__dict__
 
     def __str__(self):
-        return f'VoteBlock: {self.number}\nHash: {self.hash()}\nPrevious Hash: {self.previous_hash}\nVote: {self.vote}\nNonce: {self.nonce}'
+        return f'VoteBlock: {self.number}\nHash: {self.hash()}\nPrevious Hash: {self.previous_hash}\nVote: {self.vote}'
 
 class Blockchain:
-
-    difficulty = 4
 
     def __init__(self, chain=[]):
         self.chain = chain
@@ -57,22 +54,20 @@ class Blockchain:
     def add(self, block):
         self.chain.append(block)
     
-    def mine(self, block):
+    def validate(self, block):
         block.previous_hash = self.chain[-1].hash()
-
-        while True:
-            if block.hash()[:self.difficulty] == '0' * self.difficulty:
-                self.add(block)
-                break
-            else:
-                block.nonce += 1
+        if block.voter_hash in ALLOWED_VOTER_HASHES:
+            self.add(block)
+            return { 'message': f'Your vote had been cast successfully. You voted for {block.vote}. Thank you for participating in democracy.', 'block_hash': self.chain[-1].hash(), 'block_number': self.chain[-1].number, 'status': 'success' }
+        return {'message': 'Sorry, you are not currently registered to vote.', 'status': 'error'}
+            
 
     def is_valid(self):
-        for i in range(2, len(self.chain)):
+        for i in range(1, len(self.chain)):
             previous_hash = self.chain[i].previous_hash
             previous_block = self.chain[i - 1].hash()
 
-            if previous_block != previous_hash or previous_block[:self.difficulty] != '0' * self.difficulty:
+            if previous_block != previous_hash:
                 return False
         return True
             
@@ -85,50 +80,47 @@ blockchain.add(genesis)
 
 @api_view(['GET'])
 def get_blockchain(request):
-    blockchain_view = json.dumps(blockchain.chain, default=lambda vote_block: vote_block.encode())
+    blockchain_data = json.dumps(blockchain.chain, default=lambda vote_block: vote_block.encode())
 
     response = {
-        'blockchain': blockchain_view,
+        'blockchain': blockchain_data,
         'length': len(blockchain.chain),
-        'blockchain_is_valid': blockchain.is_valid()
+        'is_valid': blockchain.is_valid()
     }
     return Response(response)
 
-
-
 @api_view(['POST'])
 def add_vote(request):
+    print(request.data)
     vote = request.data.get('vote')
-    voter = request.data.get('voter')
+    voter_hash = request.data.get('voter_hash')
 
-    if voter in ALLOWED_VOTERS:
-
-        vote_block = VoteBlock(number = blockchain.chain[-1].number + 1, vote = vote, voter=voter)
+    vote_block = VoteBlock(number = blockchain.chain[-1].number + 1, vote = vote, voter_hash=voter_hash)
         
-        blockchain.mine(vote_block)
-        vote_hash = blockchain.chain[-1].hash()
+    response = blockchain.validate(vote_block)
 
-        return Response({'message': f'Your vote had been cast successfully. You voted for {vote}. Thank you for participating in democracy.', 'vote_hash': vote_hash, 'blockchain_is_valid': blockchain.is_valid()})
-    
+    if response.get('status') == 'success':
+        ALLOWED_VOTER_HASHES.remove(voter_hash)
+        BLACKLISTED_VOTER_HASHES.append(voter_hash)
     else:
-        return Response({'message': 'Your voting credentials have not been approved'})
-
+        if voter_hash in BLACKLISTED_VOTER_HASHES:
+            response = {'message': 'Sorry, you have already cast a vote.'}
+        
+    return Response(response)
 
 @api_view(['GET'])
 def get_vote(request):
-    vote_hash = request.data.get('vote_hash')
+    block_number = int(request.data.get('block_number'))
 
-    for block in blockchain.chain:
-        if block.hash() == vote_hash:
-            return Response({'message': f'Your vote is currently cast for {block.vote}.', 'blockchain_is_valid': blockchain.is_valid()})
-    return Response({'message': 'Your vote cannot be found on the blockchain', 'blockchain_is_valid': blockchain.is_valid()})
-
+    try:
+        vote = blockchain.chain[block_number].vote
+        return Response({'message': f'Your vote is currently cast for {vote}.'})
+    except:
+        return Response({'message': 'Your vote cannot be found on the blockchain'})
 
 @api_view(['GET'])
 def count_votes(request):
-    vote_counts = {
-
-    }
+    vote_counts = {}
     for i in range(1, len(blockchain.chain)):
         if blockchain.chain[i].vote in vote_counts:
             vote_counts[blockchain.chain[i].vote] += 1
