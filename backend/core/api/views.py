@@ -81,6 +81,10 @@ blockchain.add(genesis)
 
 @api_view(['GET'])
 def get_blockchain(request):
+
+    for block in blockchain.chain:
+        block.hash_code = block.hash()
+    
     blockchain_data = json.dumps(blockchain.chain, default=lambda vote_block: vote_block.encode())
 
     response = {
@@ -102,7 +106,7 @@ def add_vote(request):
     vote = request.data.get('vote')
     voter_hash = request.data.get('voter_hash')
 
-    vote_block = VoteBlock(number = blockchain.chain[-1].number + 1, vote = vote, voter_hash=voter_hash)
+    vote_block = VoteBlock(number = blockchain.chain[-1].number + 1, previous_hash = blockchain.chain[-1].hash(), vote = vote, voter_hash=voter_hash)
         
     response = blockchain.validate(vote_block)
 

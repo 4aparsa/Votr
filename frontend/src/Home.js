@@ -98,7 +98,7 @@ const Home = () => {
                             <span className="block text-indigo-600 xl:inline">voting</span>
                         </h1>
                         <p className="mt-3 text-base text-gray-500 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl lg:mx-0">
-                            Votr is an online voting platform based on the blockchain. Online voting turnout not only makes voting more accessible for everyone, but allows for a transparent election where anyone can verify the public ledger and that their vote is cast as intended.
+                            Votr is an online voting platform based on the blockchain. An online voting platform not only makes voting more accessible for everyone, but allows for a transparent election where anyone can verify the public ledger and that their vote is cast as intended.
                         </p>
                         <div className="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start">
                             <div className="rounded-md shadow">
@@ -138,7 +138,7 @@ const Home = () => {
                         A better way to vote
                     </p>
                     <p className="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
-                        The United States has 90% Internet penetration. It's time to digetize our democracy.
+                        The United States has 90% Internet penetration. It's time to digitize our democracy.
                     </p>
                     </div>
 
