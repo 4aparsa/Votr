@@ -9,12 +9,9 @@ ALLOWED_VOTER_HASHES = [
     'c307f9a91838be2c44ac95c16f90d53219aa5da487d58b2a36c441cec9cbb548',
     '26d0841e99187f02dde5cbf9da8709ae43828e2914ce57887eccb84d7a30e84e',
     '2cd096cab6d452330d003f5755b50a8325949337c5bda815febfb3ae65a174ef',
-    '3c7245aa48d67a9f0c0929f9622a5643cbf1bc568d25182d0103d729e4430d5f',
-    '77e6f78af45f649c5f3b8ebe484a91a144eb203a34a89c8dc5b1c4ca87bc6f71'
 ]
 
 BLACKLISTED_VOTER_HASHES = [
-    'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'
 ]
 
 genesis_voter_hash = 'genesis_voter_hash'
@@ -126,13 +123,10 @@ def register_voter(request):
 
     new_voter_hash = request.data.get('new_voter_hash')
 
-    # check if voter hash is blacklisted -> return
     if new_voter_hash in BLACKLISTED_VOTER_HASHES:
         response = {'message': 'Sorry, you have already casted a vote and cannot register to vote again.'}
-    # check if  voter hash is already registered -> return
     elif new_voter_hash in ALLOWED_VOTER_HASHES:
          response = {'message': 'You have already registered to vote.'}
-    # add voter hash to registered -> return
     else:
         ALLOWED_VOTER_HASHES.append(new_voter_hash)
         response = {'message': 'You have successfully registered to vote.'}
