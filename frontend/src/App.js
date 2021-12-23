@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 
 import Home from './Home'
 import Vote from './Vote'
+import Register from './Register'
 import Verify from './Verify'
 import Blockchain from './Blockchain';
 
@@ -12,6 +13,7 @@ const App = () => {
       <Switch>
           <Route exact path='/' component={Home} />
           <Route exact path='/vote' component={Vote} />
+          <Route exact path='/register' component={Register} />
           <Route exact path='/verify' component={Verify} />
           <Route exact path='/blockchain' component={Blockchain} />
       </Switch>
