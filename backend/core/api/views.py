@@ -13,7 +13,6 @@ ALLOWED_VOTER_HASHES = [
 ]
 
 BLACKLISTED_VOTER_HASHES = [
-
 ]
 
 genesis_voter_hash = 'genesis_voter_hash'
@@ -118,6 +117,22 @@ def add_vote(request):
             response = {'message': 'Sorry, you have already cast a vote.'}
         
     return Response(response)
+
+
+@api_view(['POST'])
+def register_voter(request):
+
+    new_voter_hash = request.data.get('new_voter_hash')
+
+    if new_voter_hash in BLACKLISTED_VOTER_HASHES:
+        response = {'message': 'Sorry, you have already casted a vote and cannot register to vote again.'}
+    elif new_voter_hash in ALLOWED_VOTER_HASHES:
+         response = {'message': 'You have already registered to vote.'}
+    else:
+        ALLOWED_VOTER_HASHES.append(new_voter_hash)
+        response = {'message': 'You have successfully registered to vote.'}
+    return Response(response)
+    
 
 @api_view(['POST'])
 def get_vote(request):
